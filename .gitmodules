@@ -1,0 +1,3 @@
+[submodule "AugmentedAutoencoder"]
+	path = AugmentedAutoencoder
+	url = git@github.com:DLR-RM/AugmentedAutoencoder.git

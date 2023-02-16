@@ -1,8 +1,8 @@
 # 6Dpose-Yolov7-Seg-AAE
 New pipeline proposed based on segmentation (with Yolov7) + pose estimation (with Augmented Autoencoder) from RGB monocular
 # Env Creation
-```sudo apt-get install libglfw3-dev libglfw3```
-```sudo apt-get install libassimp-dev```
+```sudo apt-get install libglfw3-dev libglfw3
+sudo apt-get install libassimp-dev```
 ```conda env create -f aae_py37_tf26.yml
 conda activate aae_seg2
 pip install --pre --upgrade PyOpenGL PyOpenGL_accelerate
@@ -17,3 +17,5 @@ Then enter with cd in the AAE folder and install auto_pose:
 
 For yolov7 requirements:
 ```pip install -r yolov7_requirements.txt```
+
+#Evaluation

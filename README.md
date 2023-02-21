@@ -25,4 +25,22 @@ For yolov7 requirements:
 pip install -r yolov7_requirements.txt
 ```
 
-#Evaluation
+# Evaluation
+```
+export PYOPENGL_PLATFORM='egl'
+export AE_WORKSPACE_PATH=/path/to/ae_workspace/
+python src/demo_yolov7_aae.py -f /path/to/the/data/folder -test_config /path/to/config/file.cgf -save_res /path/where/you/want/results
+```
+Args for the demo script are:
+- -f or --file_path indicate path to the folder where images to predict are placed
+- --seg_yes is an option of adding or removing segmentation in the input of aae (True with segmentation, False without)
+- -d is the path to depth map folder (not used for the moment)
+- -i is the path for a bag file (not used for the moment)
+- -v is the path for a video file (not used for the moment)
+- -r is the path for a realsense input video (not used for the moment)
+- -test_config is the path for cfg_eval file
+- -vis is 
+- -debugvis if True the code show images step by step, otherwise it doesn't show anything
+
+
+

@@ -29,7 +29,7 @@ pip install -r yolov7_requirements.txt
 ```
 export PYOPENGL_PLATFORM='egl'
 export AE_WORKSPACE_PATH=/path/to/ae_workspace/
-python src/demo_yolov7_aae.py -f /path/to/the/data/folder -test_config /path/to/config/file.cgf -save_res /path/where/you/want/results
+python src/eval_yolov7_aae.py -f /path/to/the/data/folder -test_config /path/to/config/file.cgf -save_res /path/where/you/want/results
 ```
 Args for the demo script are:
 - -f or --file_path indicate path to the folder where images to predict are placed

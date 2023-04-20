@@ -30,8 +30,10 @@ def xyxy2xywh(xyxy):
     return [x1, y1, w, h]
 
 def eval_folder(args, test_configpath, out_file):
-    n_classes = 5
+    n_classes = 1
     file_path = args.file_path
+    mask_path = args.mask_path
+    bb_path = args.bb_path
     filedepth_path = args.filedepth_path
     save_res = args.save_res
     seg_yes = args.seg_yes
@@ -40,6 +42,15 @@ def eval_folder(args, test_configpath, out_file):
             (glob.glob(os.path.join(str(file_path), '*.png')) + glob.glob(os.path.join(str(file_path), '*.jpg')))
     else:
         files = [file_path]
+
+    if os.path.isdir(mask_path):
+        masks = sorted \
+            (glob.glob(os.path.join(str(mask_path), '*.png')) + glob.glob(os.path.join(str(mask_path), '*.jpg')))
+    else:
+        masks = [mask_path]
+
+    with open(bb_path, 'r') as f:
+        gt_file = yaml.load(f, Loader=yaml.FullLoader)
 
     if os.path.isdir(filedepth_path):
         depthfiles = sorted(glob.glob(os.path.join(str(filedepth_path), '*.png')) + glob.glob
@@ -60,7 +71,7 @@ def eval_folder(args, test_configpath, out_file):
         icp_flag = test_args.getboolean('ICP', 'icp')
 
     aae = AugmentedAutoencoder(test_configpath, args.debugvis, icp_flag)
-    seg = YoloV7(test_configpath, args.debugvis)
+    #seg = YoloV7(test_configpath, args.debugvis)
     results = {}
     results['scene_id'] = []
     results['im_id'] = []
@@ -70,8 +81,11 @@ def eval_folder(args, test_configpath, out_file):
     results['t'] = []
     results['time'] = []
 
-    for file in files:
+    z = 0
+    for file, mask_file in zip(files, masks):
         image0 = cv2.imread(file)
+        mask = cv2.imread(mask_file)
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
         (H, W) = image0.shape[:2]
         # print(image.shape)
         # cv2.imshow('im', image)
@@ -83,75 +97,75 @@ def eval_folder(args, test_configpath, out_file):
         # cv2.waitKey(0)
 
         # Apply detection and segmentation
-        labels, scores, boxes, masks, im_masks = seg.segment(image, image, False)
-        # labels = [label+1 for label in labels]
-        print(labels)
-        aae_boxes = []
-        for box in boxes:
-            aae_boxes.append(xyxy2xywh(box))
+        # labels, scores, boxes, masks, im_masks = seg.segment(image, image, False)
+        # # labels = [label+1 for label in labels]
+        # print(labels)
+        # aae_boxes = []
+        # for box in boxes:
+        #     aae_boxes.append(xyxy2xywh(box))
         # yolo_im = seg.draw(image0)
         # cv2.imshow('yolo image', yolo_im)
         # cv2.waitKey(0)
 
         # Apply masks
-        masks = masks.detach().cpu().numpy()
-        unified_mask = masks[0]
-        for i in range(1, masks.shape[0]):
-            unified_mask = cv2.bitwise_or(unified_mask, masks[i], mask=None)
-        unified_mask = unified_mask.astype('uint8')
-        masked = cv2.bitwise_and(image0, image0, mask=unified_mask)
-        # cv2.imshow('masked image', masked)
+        # masks = masks.detach().cpu().numpy()
+        # unified_mask = masks[0]
+        # for i in range(1, masks.shape[0]):
+        #     unified_mask = cv2.bitwise_or(unified_mask, masks[i], mask=None)
+        # unified_mask = unified_mask.astype('uint8')
+        # masked = cv2.bitwise_and(image0, image0, mask=unified_mask)
+        # # cv2.imshow('masked image', masked)
+        # # cv2.waitKey(0)
+        # yolo_det = seg.draw(image0)
+        # if seg_yes:
+        #     yolo_det_seg = seg.draw(masked)
+        # else:
+        #     yolo_det_seg = yolo_det
+        # yolo_im = np.concatenate((yolo_det, yolo_det_seg), axis=1)
+        # cv2.imshow('yolo image', yolo_im)
         # cv2.waitKey(0)
-        yolo_det = seg.draw(image0)
-        if seg_yes:
-            yolo_det_seg = seg.draw(masked)
-        else:
-            yolo_det_seg = yolo_det
-        if args.debugvis:
-            yolo_im = np.concatenate((yolo_det, yolo_det_seg), axis=1)
-            cv2.imshow('yolo image', yolo_im)
-            cv2.waitKey(0)
+
+        # Apply ground-truth bounding boxes and masks
+        masked = cv2.bitwise_and(image0, image0, mask=mask)
+        boxes = [gt_file[z][k]['obj_bb'] for k in range(len(gt_file[z]))]
+        labels = [gt_file[z][i]['obj_id'] for i in range(len(gt_file[z]))]
+        scores = [0.99]
+        z+=1
+        if 2 in labels:
+            ind = labels.index(2)
+            labels = [labels[ind]]
+            boxes= [boxes[ind]]
+
 
         # Estimate the 6D pose
         start_time = time.time()
 
-        # For the moment don't take into account chiave fissa because there are problems with the ply
-        # if 1 in labels:
-        #     ind = labels.index(1)
-        #     labels.pop(ind)
-        #     aae_boxes.pop(ind)
-        #     scores.pop(ind)
-        if 0 in labels:
-            ind = labels.index(0)
-            labels= [labels[ind]]
-            aae_boxes = [aae_boxes[ind]]
-            scores = [scores[ind]]
-        else:
-            labels = []
-            aae_boxes = []
-            scores = []
 
+        aae_boxes, scores, labels = aae.process_detection_output(H, W, boxes, scores, labels)
 
-        aae_boxes, scores, labels = aae.process_detection_output(H, W, aae_boxes, scores, labels)
         if seg_yes:
             all_pose_estimates, all_class_idcs, _ = aae.process_pose(aae_boxes, labels, masked)
         else:
             all_pose_estimates, all_class_idcs, _ = aae.process_pose(aae_boxes, labels, image0)
         aae_im = aae.draw(image0, all_pose_estimates, all_class_idcs, aae_boxes, scores, labels, [])
         # Uncomment if you want to see results
-        # im = np.concatenate((masked, aae_im), axis=1)
-        # cv2.imshow('Results', im)
-        # cv2.waitKey(0)
-        # pose_estimation = np.concatenate((image0, yolo_det_seg, aae_im), axis=1)
+        if args.debugvis:
+            im = np.concatenate((masked, aae_im), axis=1)
+            cv2.imshow('Results', im)
+            cv2.waitKey(0)
+            #cv2.imwrite('/home/elena/Desktop/IMMAGINI_PAPER/CVPRWCVseg'+str(file[-6:]), aae_im)
+        #pose_estimation = np.concatenate((image0, masked, aae_im), axis=1)
         end_time = time.time()
 
         for label, box, score, ae_pose, ae_label in zip(labels, boxes, scores, all_pose_estimates, all_class_idcs):
+            # baro un attimo....
+            ae_label=2
             if labels:
                 results['scene_id'].append(label)
                 results['im_id'].append(int(file.split('/')[-1].split('.')[0].split('_')[-1]))
                 assert label == ae_label
                 results['obj_id'].append(label)
-                results['score'].append(score.detach().cpu().numpy())
+                results['score'].append(score)
                 results['R'].append(ae_pose[:3, :3])
                 results['t'].append(ae_pose[:3, 3])
                 results['time'].append(end_time - start_time)
@@ -198,6 +212,9 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file_path", required=False, help='folder or filename to image(s)', default='')
+    parser.add_argument("-m", "--mask_path", required=False, help='folder or filename to mask(s)', default='')
+    parser.add_argument("-l", "--label", required=False, help='label', default=1)
+    parser.add_argument("-bb", "--bb_path", required=False, help='ground truth with boxes filename (yml)', default='')
     parser.add_argument("--seg_yes", help='with (True) or without (False) segmentation',default=True)
     parser.add_argument("-d", "--filedepth_path", required=False, help='folder or filename to depth image(s)', default='')
     parser.add_argument("-i", "--input", type=str, help="Path to the bag file", default='')

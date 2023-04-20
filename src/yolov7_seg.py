@@ -117,13 +117,16 @@ class YoloV7:
                 im = im[None]  # expand for batch dim
 
         # Inference
+        start_time = time.time()
         with dt[1]:
             # print('save_dir', self.save_dir)
             visualize = increment_path(self.save_dir / 'image', mkdir=True) if visualize else False
             pred, out = self.net(im, augment=False, visualize=visualize)
             self.proto = out[1]
+        end_time = time.time()
 
         # NMS
+        start_time_post = time.time()
         with dt[2]:
             pred = non_max_suppression(pred, conf_thres=self.nms_threshold, iou_thres=self.det_threshold, classes=None, agnostic=False, max_det=self.max_detections, nm=32)
 
@@ -153,14 +156,16 @@ class YoloV7:
                 # Print results
                 for c in det[:, 5].unique():
                     n = (det[:, 5] == c).sum()  # detections per class
-                    # s += f"{n} {self.names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                        # s += f"{n} {self.names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Mask plotting ----------------------------------------------------------------------------------------
                 mcolors = [colors(int(cls), True) for cls in det[:, 5]]
                 self.im_masks = plot_masks(im[i], self.masks, mcolors)
                 annotator.im = scale_masks(im.shape[2:], self.im_masks, im0.shape)  # scale to original h, w
                 # Mask plotting ---------------------------------------------------------------------------------------
-
+        end_time_post = time.time()
+        print("YOLO Inference Time: {:.3f} s".format(end_time - start_time))
+        print("YOLO Post-processing Time: {:.3f} s".format(end_time_post - start_time_post))
         self.labels = []
         self.scores = []
         for det in pred:
@@ -178,7 +183,10 @@ class YoloV7:
                 # if i==3:
                 (x1, y1) = (int(self.boxes[i][0]), int(self.boxes[i][1]))
                 (x2, y2) = (int(self.boxes[i][2]), int(self.boxes[i][3]))
-                color = [int(c) for c in COLORS[self.class_ids[i]]]
+                try:
+                    color = [int(c) for c in COLORS[self.class_ids[i]]]
+                except:
+                    color = [152, 223, 81]
                 cv2.rectangle(im, (x1, y1), (x2, y2), color, 2)
                 text = "{}: {:.4f}".format(self.labels[i], self.scores[i])
                 cv2.putText(

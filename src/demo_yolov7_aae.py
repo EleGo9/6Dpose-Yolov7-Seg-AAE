@@ -117,8 +117,8 @@ def demo_folder(args, test_configpath):
             all_pose_estimates, all_class_idcs, _ = aae.process_pose(aae_boxes, labels, image0)
         aae_im = aae.draw(image0, all_pose_estimates, all_class_idcs, aae_boxes, scores, labels, [])
         pose_estimation = np.concatenate((image0, yolo_det_seg, aae_im), axis=1 )
-        # cv2.imshow('6D pose estimation', pose_estimation)
-        # cv2.waitKey(0)
+        cv2.imshow('6D pose estimation', pose_estimation)
+        cv2.waitKey(0)
 
         #Save images to a folder
         cv2.imwrite(save_res+str(file[-6:]), pose_estimation)
@@ -217,7 +217,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file_path", required=False, help='folder or filename to image(s)', default='')
-    parser.add_argument("--seg_yes", help='with (True) or without (False) segmentation',default=False)
+    parser.add_argument("--seg_yes", help='with (True) or without (False) segmentation',default=True)
     parser.add_argument("-d", "--filedepth_path", required=False, help='folder or filename to depth image(s)', default='')
     parser.add_argument("-i", "--input", type=str, help="Path to the bag file", default='')
     parser.add_argument("-v", "--video_path", required=False, help='filename to test video', default='')

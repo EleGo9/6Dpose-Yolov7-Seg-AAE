@@ -1,0 +1,24 @@
+For object 2 benchvise
+eval:
+-f
+/home/elena/repos/EfficientPose/data/Linemod_preprocessed/data/02/rgb/
+-m
+/home/elena/repos/EfficientPose/data/Linemod_preprocessed/data/02/mask
+-l
+1
+-bb
+/home/elena/repos/EfficientPose/data/Linemod_preprocessed/data/02/gt.yml
+-test_config
+/home/elena/repos/6Dpose-Yolov7-Seg-AAE/AugmentedAutoencoder/auto_pose/ae/cfg_eval/linemode2.cfg
+-out_csvfile
+/home/elena/repos/EfficientPose/data/Linemod_preprocessed/detaaeorig_lm-benchvise2.csv
+
+est_add:
+--result_filename
+/home/elena/repos/EfficientPose/data/Linemod_preprocessed/detaaeorig2_lm-test.csv
+--results_path
+/home/elena/repos/bop_toolkit/
+--dataset_path
+/home/elena/repos/bop_toolkit/
+--gt_filename
+/home/elena/repos/bop_toolkit/lm/test/000002/scene_gt.json

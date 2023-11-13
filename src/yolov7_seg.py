@@ -26,7 +26,7 @@ from yolov7.seg.utils.torch_utils import select_device, smart_inference_mode
 
 COLORS = np.random.randint(0, 255, size=(len([0,1,2,3,4]), 3), dtype="uint8")
 
-class YoloV7:
+class YoloV7seg:
     def __init__(self, test_configpath, debug_vis):
         self.debug_vis = debug_vis
         test_args = configparser.ConfigParser()

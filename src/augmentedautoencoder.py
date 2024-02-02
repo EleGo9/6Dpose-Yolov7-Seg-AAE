@@ -34,7 +34,7 @@ class AugmentedAutoencoder:
             print('Please define a workspace path:\n')
             print('export AE_WORKSPACE_PATH=/path/to/workspace\n')
             exit(-1)
-
+        print(test_configpath)
         self._camPose = test_args.getboolean('CAMERA', 'camPose')
         self._camK = np.array(eval(test_args.get('CAMERA', 'K_test'))).reshape(3, 3)
         self._width = test_args.getint('CAMERA', 'width')
@@ -78,8 +78,7 @@ class AugmentedAutoencoder:
             self.pad_factors.append(train_args.getfloat('Dataset', 'PAD_FACTOR'))
             self.patch_sizes.append((train_args.getint('Dataset', 'W'), train_args.getint('Dataset', 'H')))
 
-            self.all_codebooks.append(
-                factory.build_codebook_from_name(experiment_name, experiment_group, return_dataset=False))
+            self.all_codebooks.append(factory.build_codebook_from_name(experiment_name, experiment_group, return_dataset=False))
             saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=experiment_name))
             factory.restore_checkpoint(self.sess, saver, ckpt_dir)
 
@@ -114,7 +113,7 @@ class AugmentedAutoencoder:
         else:
             print("BAD value in MODEL: ", cad_reconst[0])
             exit(-1)
-        self.color_dict = [(0, 255, 0), (0, 0, 255), (255, 0, 0), (255, 255, 0)] * 10
+        self.color_dict = [(66, 66, 66), (255, 152, 0), (33, 150, 243), (244, 67, 54)] * 10
 
     def extract_square_patch(self, scene_img, bb_xywh, pad_factor, resize=(128, 128), interpolation=cv2.INTER_NEAREST,
                              black_borders=False):
@@ -303,10 +302,12 @@ class AugmentedAutoencoder:
         for label, box, score, cs in zip(labels, boxes, scores, cosine_similarity):
             box = box.astype(np.int32)
             xmin, ymin, xmax, ymax = box[0], box[1], box[0] + box[2], box[1] + box[3]
-            text = "{}: {:.4f} - {:.4f}".format(label, score, cs)
+            text = "{}: {:.3f}".format(label, cs)
             cv2.putText(
-                im_show, text, (xmin, ymin - 5), cv2.FONT_HERSHEY_SIMPLEX, .5, self.color_dict[int(label)], 2)
-            cv2.rectangle(im_show, (xmin, ymin), (xmax, ymax), (255, 0, 0), 2)
+                im_show, text,
+                (xmin, ymin - 5), cv2.FONT_ITALIC, .5, self.color_dict[int(label)], 2
+            )
+            cv2.rectangle(im_show, (xmin, ymin), (xmax, ymax), self.color_dict[int(label)], 1)
 
         # cv2.imshow('', bgr)
         if self.debug_vis:
@@ -315,4 +316,21 @@ class AugmentedAutoencoder:
         end_time = time.time()
         print("AAE Drawing Time: {:.3f} s".format(end_time - start_time))
         return im_show
+
+    def get_camK(self):
+        return self._camK
+
+    def singles_renders(self, image, all_pose_estimates, all_class_idcs, labels, boxes, scores, cosine_similarities):
+        renders_image = image.copy()
+        all_renders = []
+        for i in range(len(all_pose_estimates)):
+            aae_image, g_y = self.draw(
+                image,
+                [all_pose_estimates[i]],
+                [all_class_idcs[i]],
+                [labels[i]], [boxes[i]], [scores[i]], [cosine_similarities[i]]
+            )
+            all_renders.append(g_y)
+            renders_image = cv2.addWeighted(renders_image, 1, g_y, 1, 0)
+        return renders_image, all_renders, self._camK
 

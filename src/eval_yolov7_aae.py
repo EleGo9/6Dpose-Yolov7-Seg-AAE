@@ -157,7 +157,7 @@ def eval_folder(args, test_configpath, out_file):
                 results['time'].append(end_time - start_time)
 
     # save prova custom test csv
-    f = open(out_file, 'w')
+    '''f = open(out_file, 'w')
     writer = csv.writer(f)
     writer.writerow(results.keys())
     for i in range(len(results['scene_id'])):
@@ -172,7 +172,7 @@ def eval_folder(args, test_configpath, out_file):
         writer.writerow([results['scene_id'][i], results['im_id'][i], results['obj_id'][i], results['score'][i],
                          R_str, t_str, results['time'][i]])
 
-    f.close()
+    f.close()'''
 
 
 def main(args):
@@ -198,7 +198,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file_path", required=False, help='folder or filename to image(s)', default='')
-    parser.add_argument("--seg_yes", help='with (True) or without (False) segmentation',default=True)
+    parser.add_argument("--seg_yes", help='with (True) or without (False) segmentation', default=True)
     parser.add_argument("-d", "--filedepth_path", required=False, help='folder or filename to depth image(s)', default='')
     parser.add_argument("-i", "--input", type=str, help="Path to the bag file", default='')
     parser.add_argument("-v", "--video_path", required=False, help='filename to test video', default='')

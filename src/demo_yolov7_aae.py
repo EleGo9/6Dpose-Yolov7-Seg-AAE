@@ -13,8 +13,10 @@ import os
 import struct
 import numpy as np
 import json
+from services.camera.depthcamera.realsense_d435i import RealsenseD435I
 
 import yaml
+
 
 def xyxy2xywh(xyxy):
     (x1, y1) = (int(xyxy[0]), int(xyxy[1]))
@@ -23,8 +25,9 @@ def xyxy2xywh(xyxy):
     h = int(y2-y1)
     return [x1, y1, w, h]
 
+
 def demo_folder(args, test_configpath):
-    n_classes = 5
+    n_classes = 3
     file_path = args.file_path
     filedepth_path = args.filedepth_path
     save_res = args.save_res
@@ -56,9 +59,17 @@ def demo_folder(args, test_configpath):
     aae = AugmentedAutoencoder(test_configpath, args.debugvis, icp_flag)
     seg = YoloV7(test_configpath, args.debugvis)
 
+    camera = RealsenseD435I((640, 480), False)
+    from statistics import mean, variance
+    confidence_scores_obj_1 = []
+    confidence_scores_obj_2 = []
+    confidence_scores_obj_3 = []
+    #for file in files:
+    while True:
+        image_path = "dataset/test/rgb/camera.png"
+        image0 = camera.photo(image_path)
 
-    for file in files:
-        image0 = cv2.imread(file)
+        #image0 = cv2.imread(file)
         (H, W) = image0.shape[:2]
         # print(image.shape)
         # cv2.imshow('im', image)
@@ -66,11 +77,16 @@ def demo_folder(args, test_configpath):
         image = np.swapaxes(image0, 0, 2)
         image = np.swapaxes(image, 1, 2)
         # print(image.shape)
-        # cv2.imshow('im',image)
+        # cv2.imshow('im',image0)
         # cv2.waitKey(0)
+
+        H = 480
+        W = 640
 
         # Apply detection and segmentation
         labels, scores, boxes, masks, im_masks = seg.segment(image, image, False)
+        while masks is None:
+            labels, scores, boxes, masks, im_masks = seg.segment(image, image, False)
         # labels = [label+1 for label in labels]
         print(labels)
         aae_boxes = []
@@ -86,6 +102,7 @@ def demo_folder(args, test_configpath):
         for i in range(1,masks.shape[0]):
             unified_mask = cv2.bitwise_or(unified_mask, masks[i], mask = None)
         unified_mask = unified_mask.astype('uint8')
+        print(image0.shape, unified_mask.shape)
         masked = cv2.bitwise_and(image0, image0, mask=unified_mask)
         # cv2.imshow('masked image', masked)
         # cv2.waitKey(0)
@@ -104,11 +121,11 @@ def demo_folder(args, test_configpath):
         start_time = time.time()
 
         # For the moment don't take into account chiave fissa because there are problems with the ply
-        if 1 in labels:
+        '''if 1 in labels:
             ind = labels.index(1)
             labels.pop(ind)
             aae_boxes.pop(ind)
-            scores.pop(ind)
+            scores.pop(ind)'''
 
         aae_boxes, scores, labels = aae.process_detection_output(H, W, aae_boxes, scores, labels)
         if seg_yes:
@@ -117,17 +134,39 @@ def demo_folder(args, test_configpath):
             all_pose_estimates, all_class_idcs, _ = aae.process_pose(aae_boxes, labels, image0)
         aae_im = aae.draw(image0, all_pose_estimates, all_class_idcs, aae_boxes, scores, labels, [])
         pose_estimation = np.concatenate((image0, yolo_det_seg, aae_im), axis=1 )
+        #cv2.imwrite("src/image/custom_pipeline_cem_obj_.png", pose_estimation)
         cv2.imshow('6D pose estimation', pose_estimation)
-        cv2.waitKey(0)
+        cv2.waitKey(1)
 
         #Save images to a folder
-        cv2.imwrite(save_res+str(file[-6:]), pose_estimation)
+        #cv2.imwrite(save_res+str(file[-6:]), pose_estimation)
 
         # To see the image:
         # cv2.imshow('im', im_mask)
         # cv2.waitKey(0)
 
         # cropped_img = seg.crop_mask(image0, pred, im_mask)
+
+        '''print(labels, _)
+
+        for label, cs in zip(labels, _):
+            if label == 0:
+                confidence_scores_obj_1.append(cs)
+            elif label == 1:
+                confidence_scores_obj_2.append(cs)
+            elif label == 2:
+                confidence_scores_obj_3.append(cs)'''
+
+    '''print(len(confidence_scores_obj_1)+len(confidence_scores_obj_2)+len(confidence_scores_obj_1))
+
+    print(mean(confidence_scores_obj_1), sum(confidence_scores_obj_1)/len(confidence_scores_obj_1))
+    print(np.var(confidence_scores_obj_1))
+
+    print(mean(confidence_scores_obj_2), sum(confidence_scores_obj_2)/len(confidence_scores_obj_2))
+    print(np.var(confidence_scores_obj_2))
+
+    print(mean(confidence_scores_obj_3), sum(confidence_scores_obj_3)/len(confidence_scores_obj_3))
+    print(np.var(confidence_scores_obj_3))'''
 
 
     # undistortion preparatory steps
@@ -194,6 +233,53 @@ def demo_folder(args, test_configpath):
         #     im_name = file.split('/')[-1]
         #     cv2.imwrite(save_res + im_name, full_image)
 
+def demo_realsense(args, test_configpath):
+    filedepth_path = args.filedepth_path
+    test_args = configparser.ConfigParser()
+    test_args.read(test_configpath)
+    icp_flag = False
+    if filedepth_path != '' and test_args.has_option('ICP', 'icp'):
+        icp_flag = test_args.getboolean('ICP', 'icp')
+
+    camera = RealsenseD435I((640, 480), False)
+    seg = YoloV7(test_configpath, args.debugvis)
+    aae = AugmentedAutoencoder(test_configpath, args.debugvis, icp_flag)
+
+    while True:
+        image0 = camera.photo("src/image/camera.png")
+        (H, W) = image0.shape[:2]
+        image = np.swapaxes(image0, 0, 2)
+        image = np.swapaxes(image, 1, 2)
+
+        labels, scores, boxes, masks, im_masks = seg.segment(image, image, False)
+
+        aae_boxes = []
+        for box in boxes:
+            aae_boxes.append(xyxy2xywh(box))
+
+        masks = masks.detach().cpu().numpy()
+        unified_mask = masks[0]
+        for i in range(1, masks.shape[0]):
+            unified_mask = cv2.bitwise_or(unified_mask, masks[i], mask=None)
+        unified_mask = unified_mask.astype('uint8')
+        masked = cv2.bitwise_and(image0, image0, mask=unified_mask)
+        yolo_det_seg = seg.draw(masked)
+
+        if 1 in labels:
+            ind = labels.index(1)
+            labels.pop(ind)
+            aae_boxes.pop(ind)
+            scores.pop(ind)
+
+        aae_boxes, scores, labels = aae.process_detection_output(H, W, aae_boxes, scores, labels)
+        all_pose_estimates, all_class_idcs, _ = aae.process_pose(aae_boxes, labels, masked)
+        aae_im = aae.draw(image0, all_pose_estimates, all_class_idcs, aae_boxes, scores, labels, [])
+
+        pose_estimation = np.concatenate((image0, yolo_det_seg, aae_im), axis=1)
+        cv2.imshow('6D pose estimation', pose_estimation)
+        cv2.waitKey(10)
+
+
 def main(args):
     workspace_path = os.environ.get('AE_WORKSPACE_PATH')
     if workspace_path == None:
@@ -207,8 +293,8 @@ def main(args):
         demo_folder(args, test_configpath)
     # elif args.input != '':  # if args.input:
     #     demo_bag(args, test_configpath)
-    # elif args.realsense:  # if args.input:
-    #     demo_realsense(args, test_configpath)
+    elif args.realsense:  # if args.input:
+         demo_realsense(args, test_configpath)
     # elif args.video_path != '':
     #     demo_video(args, test_configpath)
     # else:
@@ -221,7 +307,7 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--filedepth_path", required=False, help='folder or filename to depth image(s)', default='')
     parser.add_argument("-i", "--input", type=str, help="Path to the bag file", default='')
     parser.add_argument("-v", "--video_path", required=False, help='filename to test video', default='')
-    parser.add_argument("-r", "--realsense", required=False, help='filename to test video', default='')
+    parser.add_argument("-r", "--realsense", required=False, action='store_true', help='filename to test video', default=True)
     parser.add_argument("-test_config", type=str, required=False, default='test_config_webcam.cfg')
     parser.add_argument("-save_res", type=str, required=False, default='')
     parser.add_argument("-vis", action='store_true', default=False)

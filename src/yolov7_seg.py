@@ -26,6 +26,7 @@ from yolov7.seg.utils.torch_utils import select_device, smart_inference_mode
 
 COLORS = np.random.randint(0, 255, size=(len([0,1,2,3,4]), 3), dtype="uint8")
 
+
 class YoloV7:
     def __init__(self, test_configpath, debug_vis):
         self.debug_vis = debug_vis
@@ -56,8 +57,8 @@ class YoloV7:
         print('--------------------------------------')
 
         # Directories
-        self.save_dir = '/home/elena/repos/6Dpose-Yolov7-Seg-AAE'
-        self.class_ids = [0, 1, 2, 3, 4]
+        # self.save_dir = '/home/elena/repos/6Dpose-Yolov7-Seg-AAE'
+        self.class_ids = [0, 1, 2]
         #self.save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
         #(self.save_dir / 'labels' if save_txt else self.save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
@@ -89,7 +90,13 @@ class YoloV7:
         #     bs = 1  # batch_size
         # vid_path, vid_writer = [None] * bs, [None] * bs
 
-
+        self.imgsz = None
+        self.proto = None
+        self.boxes = None
+        self.masks = None
+        self.im_masks = None
+        self.labels = None
+        self.scores = None
 
     def segment(self, image, im0, visualize=False):
         (W, H) = image.shape[1:]
@@ -120,7 +127,7 @@ class YoloV7:
         start_time = time.time()
         with dt[1]:
             # print('save_dir', self.save_dir)
-            visualize = increment_path(self.save_dir / 'image', mkdir=True) if visualize else False
+            # visualize = increment_path(self.save_dir / 'image', mkdir=True) if visualize else False
             pred, out = self.net(im, augment=False, visualize=visualize)
             self.proto = out[1]
         end_time = time.time()
@@ -133,7 +140,7 @@ class YoloV7:
         # Process predictions
         self.boxes = []
         for i, det in enumerate(pred):  # per image
-            annotator = Annotator(im0, line_width=self.line_thickness, example=str(self.names))
+            annotator = Annotator(np.ascontiguousarray(im0), line_width=self.line_thickness, example=str(self.names))
             if len(det):
                 self.masks = process_mask(self.proto[i], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
 

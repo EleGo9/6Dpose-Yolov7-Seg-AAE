@@ -8,9 +8,9 @@ class IPoseEstimation(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def pose_estimation(self, filtered_boxes, filtered_labels, color_img, depth_img=None, camPose=None):
+    def pose_estimation(self, color_img, filtered_labels, filtered_boxes, masks, scores, depth_img=None, camPose=None):
         pass
 
     @abc.abstractmethod
-    def draw(self, image):
+    def draw(self, image, all_pose_estimates, all_class_idcs, labels, boxes, scores, cosine_similarities):
         pass

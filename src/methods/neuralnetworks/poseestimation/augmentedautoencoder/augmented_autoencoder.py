@@ -189,7 +189,7 @@ class AugmentedAutoencoder(IPoseEstimation):
             return self.all_codebooks[clas_idx]._dataset.viewsphere_for_embedding[
                        idcs].squeeze(), cosine_similarity_to_return
 
-    def pose_estimation(self, image, labels, boxes, scores, depth_img=None, camPose=None):
+    def pose_estimation(self, image, labels, boxes, masks, scores, depth_img=None, camPose=None):
         start_time = time.time()
         H, W = image.shape[:2]
         filtered_boxes, filtered_scores, filtered_labels = self.process_detection(H, W, boxes, scores, labels)
@@ -198,7 +198,7 @@ class AugmentedAutoencoder(IPoseEstimation):
         all_class_idcs = []
         all_cosine_similarity = []
 
-        for j, (box_xywh, label) in enumerate(zip(filtered_boxes, filtered_labels)):
+        for j, (label, box_xywh, mask) in enumerate(zip(filtered_labels, filtered_boxes, masks)):
             H_est = np.eye(4)
 
             try:
@@ -206,7 +206,10 @@ class AugmentedAutoencoder(IPoseEstimation):
             except:
                 print('%s not contained in config class_names %s', (label, self.class_names))
                 continue
-            det_img = self.extract_square_patch(image,
+
+            mask = mask.detach().cpu().numpy().astype("uint8")
+            masked = cv2.bitwise_and(image, image, mask=mask)
+            det_img = self.extract_square_patch(masked,
                                                 box_xywh,
                                                 self.pad_factors[clas_idx],
                                                 resize=self.patch_sizes[clas_idx],
@@ -313,6 +316,16 @@ class AugmentedAutoencoder(IPoseEstimation):
         end_time = time.time()
         # print("AAE Drawing Time: {:.3f} s".format(end_time - start_time))
         return im_show, g_y
+
+    def mask(self, image, masks):
+        masks = masks.detach().cpu().numpy()
+        unified_mask = masks[0]
+        for i in range(1, masks.shape[0]):
+            unified_mask = cv2.bitwise_or(unified_mask, masks[i], mask=None)
+        unified_mask = unified_mask.astype("uint8")
+        masked = cv2.bitwise_and(image, image, mask=unified_mask)
+        return masked
+
 
     def singles_renders(self, image, all_pose_estimates, all_class_idcs, labels, boxes, scores, cosine_similarities, alpha=1, beta=0.4):
         renders_image = image.copy()

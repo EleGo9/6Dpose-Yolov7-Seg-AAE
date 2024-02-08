@@ -35,3 +35,4 @@ yolov7det*.csv
 yolov7seg*.csv
 
 !requirements_seg_6d.txt
+!environment.yml

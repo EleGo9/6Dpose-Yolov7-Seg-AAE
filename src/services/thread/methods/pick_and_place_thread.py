@@ -60,7 +60,7 @@ class PickAndPlaceThread(BaseThread):
 
         self.results = None
         self.save_results = False
-        self.cem_cif = True
+        self.cem_cif = False
 
         self.initialize()
 
@@ -174,7 +174,7 @@ class PickAndPlaceThread(BaseThread):
             self.boxes[i] = self.xyxy2xywh(self.boxes[i])
 
         self.boxes, self.scores, self.labels, self.all_pose_estimates, self.all_class_idcs, self.all_cosine_similarity = \
-            self.pose_estimation_method.pose_estimation(self.retained_masked_image, self.labels, self.boxes, self.scores)
+            self.pose_estimation_method.pose_estimation(self.retained_masked_image, self.labels, self.boxes, self.masks, self.scores)
         self.copied_all_pose_estimates = self.all_pose_estimates.copy()
 
         self.retained_6d_pose_estimation_image, _ = self.pose_estimation_method.draw(
@@ -246,7 +246,7 @@ class PickAndPlaceThread(BaseThread):
                 if l == 0:
                     geometrical_transformation.picking_points = [{
                         "rotation": [0, -120, 0],
-                        "translation": [-10, 5, -5]
+                        "translation": [-10, 20, -5]
                     }]
                     '''geometrical_transformation.picking_points = [{
                         "rotation": [90, 0, 0],
@@ -260,7 +260,7 @@ class PickAndPlaceThread(BaseThread):
                 elif l == 2:
                     geometrical_transformation.picking_points = [{
                         "rotation": [0, -120, 0],
-                        "translation": [-10, 5, -5]
+                        "translation": [-10, 20, -5] #[-10, 5, -5]
                     }]
 
             self.all_pose_estimates[i] = geometrical_transformation.compute(self.all_pose_estimates[i])[0]
@@ -399,7 +399,7 @@ class PickAndPlaceThread(BaseThread):
                          + self.cobot_position_offset_configuration.Z_END_EFFECTOR_TO_CAMERA \
                          - self.xyz_mm[2]
 
-        if self.labels[self.chosen_object_index] == 0:
+        '''if self.labels[self.chosen_object_index] == 0:
             self.xyz_mm[2] -= 130
         elif self.labels[self.chosen_object_index] == 1:
             self.xyz_mm[2] -= 130
@@ -408,17 +408,21 @@ class PickAndPlaceThread(BaseThread):
         if self.labels[self.chosen_object_index] == 3:
             self.xyz_mm[2] -= 100
         if self.labels[self.chosen_object_index] == 4:
-            self.xyz_mm[2] -= 20
+            self.xyz_mm[2] -= 20'''
 
-            if not self.cem_cif:
-                if self.xyz_mm[2] < 700:
-                    self.xyz_mm[2] = 700
+        '''if not self.cem_cif:
+            if self.xyz_mm[2] < 700:
+                self.xyz_mm[2] = 700'''
 
-        if self.xyz_mm[2] < 550:
+        '''if self.xyz_mm[2] < 550:
             print("z", self.xyz_mm[2])
-            self.xyz_mm[2] = 550
+            self.xyz_mm[2] = 550'''
 
-        self.xyz_mm[2] = 1200
+        '''if self.xyz_mm[2] < 1200:
+            print("z", self.xyz_mm[2])
+            self.xyz_mm[2] = 1200'''
+
+        self.xyz_mm[2] += 50
 
         print("6d pose", self.xyz_mm)
 
@@ -437,8 +441,6 @@ class PickAndPlaceThread(BaseThread):
         )
 
         obj_center = self.camera.homography("mm_to_coordinates", self.xyz_mm_origin)
-        print(self.objects_center)
-        print(obj_center)
         obj_center = [int(i) for i in obj_center]
         cv2.circle(self.retained_renders_image, obj_center, radius=2, color=(0, 0, 255), thickness=-1)
 

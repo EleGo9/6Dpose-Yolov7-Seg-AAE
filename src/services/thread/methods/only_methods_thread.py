@@ -157,7 +157,7 @@ class OnlyMethodsThread(BaseThread):
             print("{} -> w: {}, h: {}".format(l, bb[2], bb[3]))'''
 
         self.boxes, self.scores, self.labels, self.all_pose_estimates, self.all_class_idcs, self.all_cosine_similarity = \
-            self.pose_estimation_method.pose_estimation(self.retained_masked_image, self.labels, self.boxes, self.scores)
+            self.pose_estimation_method.pose_estimation(self.retained_masked_image, self.labels, self.boxes, self.masks, self.scores)
         self.copied_all_pose_estimates = self.all_pose_estimates.copy()
 
         '''self.all_pose_estimates[0][:3, :3] = AnglesConversions.euler_angles_to_rotation_matrix(

@@ -1,4 +1,5 @@
 # 6Dpose-Yolov7-Seg-AAE
+Paper accepted in Computers in Industry https://authors.elsevier.com/sd/article/S0166-3615(24)00058-7
 New pipeline proposed based on segmentation (with Yolov7) + pose estimation (with Augmented Autoencoder) from RGB monocular
 # Env Creation
 AAE requirements
